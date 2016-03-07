@@ -7,6 +7,7 @@ package graphics
   @TODO : Draw methods
   @TODO : Save in other format than png
   @TODO : Save animations in gif
+  @TODO : Support texturing, by extracting triangle shaped parts of an image ? [new struct : Sprite]
 */
 
 import(

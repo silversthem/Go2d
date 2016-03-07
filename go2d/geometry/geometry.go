@@ -24,7 +24,7 @@ type Line struct { // a line is a link between two points
 }
 
 type Triangle struct { // 3 lines forms a triangle, useful when testing collisions or filling a shape
-  Sides [3]Points
+  Sides [3]Point
 }
 
 type Scale struct { // a scale for an object

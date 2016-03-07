@@ -4,11 +4,11 @@ package go2d
   Shapes, which are bunches of points
   ---- TODOS ----
   @TODO : Use import C and SDL to be able to handle a window and events [new file]
-  @TODO : Handle collisions [new file] using triangles
+  @TODO : Handle collisions [new file] using triangles and masks for textures [new file]
   @TODO : Default shapes and colors [new file] with NewX() function
   @TODO : Support Math graphing [new file]
   @TODO : Create Objects which are Drawable shapes [new file] with collisions ? with embedded event support ?
-  @TODO : Change the way triangles are created
+  @TODO : Change the way triangles are created in shapes
 */
 
 import(
@@ -52,8 +52,8 @@ func (shape *Shape) GetLine(index int) (Line geometry.Line) { // returns the x-t
 }
 
 func (shape *Shape) getTriangle(index int) (triangle geometry.Triangle) { // returns a triangle from 3 shape point, used in many things like filling shape or collisions
-  triangle.Sides[0] = shape.GetLine(index - 2)
-  triangle.Sides[1] = shape.GetLine(index - 1)
-  triangle.Sides[2] = shape.GetLine(index)
+  triangle.Sides[0] = shape.GetPoint(index - 2)
+  triangle.Sides[1] = shape.GetPoint(index - 1)
+  triangle.Sides[2] = shape.GetPoint(index)
   return triangle
 }
