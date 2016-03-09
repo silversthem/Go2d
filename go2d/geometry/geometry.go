@@ -24,7 +24,7 @@ type Line struct { // a line is a link between two points
 }
 
 type Triangle struct { // 3 lines forms a triangle, useful when testing collisions or filling a shape
-  Sides [3]Point
+  Points [3]Point
 }
 
 type Scale struct { // a scale for an object
@@ -44,8 +44,9 @@ func NewLine(start,end Point) Line { // creates a line
   return Line{start,end,}
 }
 
-func NewTriangle() {
-  // new triangle
+func NewTriangle(point,point2,point3 Point) Triangle { // creates a triangle
+  return Triangle{
+      [3]Point{point,point2,point3,},}
 }
 
 func NewScale(w,h float64) Scale { // creates a scale structure
@@ -58,46 +59,121 @@ func NewTransform() Transform { // creates a Transform structure
 
 /* Line methods */
 
-func (line *Line) Distance() float64 { // gets distance between two line points
+func (line Line) Distance() float64 { // gets distance between two line points
   return line.Start.Distance(line.End)
 }
 
-func (line *Line) ToVector() Point { // converts a line into a point -> a vector
+func (line Line) ToVector() Point { // converts a line into a point -> a vector
   return line.End.Substract(line.Start)
 }
 
-func (line *Line) ScalarProduct(line2 Line) float64 { // calculates the scalar product of 2 lines
+func (line Line) Opposite() Line { // Returns the opposite line (swaps Start and End points)
+  return Line{line.End,line.Start,}
+}
+
+func (line Line) IsPoint() bool { // if the line is a point
+  // ...
+  return true
+}
+
+/* Line methods with other lines */
+
+func (line Line) DotProductLine(line2 Line) float64 { // calculates the dot product of two lines
   vect,vect2 := line.ToVector(),line2.ToVector()
   return float64(vect.X)*float64(vect2.X) + float64(vect.Y)*float64(vect2.Y)
 }
 
-func (line *Line) Angle(line2 Line) float64 { // gets the oriented angle between two lines : (Line,Line2)
-  scalarProduct := line.ScalarProduct(line2)
-  dist,dist2 := line.Distance(),line.Distance()
+func (line Line) AngleLine(line2 Line) float64 { // calculates the angle between two lines
+  dotProduct := line.DotProductLine(line2)
+  dist,dist2 := line.Distance(),line2.Distance()
   if dist == 0.0 || dist2 == 0.0 {
-    return 0.0
+    panic("Line is actually a point") // Should AnglePoint be used directly ?
   } else {
-    return math.Acos(scalarProduct/(dist*dist2))
+    return math.Acos(dotProduct/(dist*dist2))
   }
 }
 
-// Intersection
+func (line Line) Intersects(line2 Line) (point Point,test bool) { // if two line intersects
+  // ...
+  return
+}
+
+func (line) IsAlignedLine(line Line) bool { // if the line is aligned with another line
+  // ...
+  return true
+}
+
+/* Line methods with points */
+
+func (line) IsAlignedPoint(point Point) bool { // if the line is aligned with a point
+  // ...
+  return true
+}
+
+func (line Line) DotProductPoint(point Point) float64 { // calculates the dot product of a line and a point
+  return line.DotProductLine(NewLine(line.Start,point))
+}
+
+func (line Line) AnglePoint(point Point) float64 { // gets the oriented angle between two lines : (Line,Line2)
+  return line.AngleLine(NewLine(line.Start,point))
+}
 
 /* Triangle methods */
 
-// get the box surrounding the triangle
+func (triangle Triangle) GetLine(index int) Line { // returns one of the 3 lines of a triangle
+  if index > 2 {
+    panic("Trying to get non existant line in triangle")
+  }
+  return NewLine(triangle.Points[index],triangle.Points[index+1])
+}
 
-// is point in triangle
+func IsTriangleFlat() bool { // if the triangle is float64
+  return true
+}
 
-// does line go through triangle
+func (triangle Triangle) GetAcuteAngleLines() (line,line2 Line) { // gets two lines forming an acute angle
+  return
+}
+
+func (triangle Triangle) GetBox() (min,max Point) { // returns the box in which the triangle is in
+  min,max = triangle.Points[0],triangle.Points[0]
+  for i := 1 ; i < 3 ; i++ { // Finding maximum and minimum
+    max.X = int(math.Max(float64(max.X),float64(triangle.Points[i].X))) // Maximum
+    max.Y = int(math.Max(float64(max.Y),float64(triangle.Points[i].Y)))
+    min.X = int(math.Min(float64(min.X),float64(triangle.Points[i].X))) // Minimum
+    min.Y = int(math.Min(float64(min.Y),float64(triangle.Points[i].Y)))
+  }
+  return
+}
+
+func (triangle Triangle) IsPointInTriangle(point Point) bool { // checks if a point is in the triangle
+  min,max := triangle.GetBox()
+  if IsPointInBox(min,max,point) { // if the point is in the triangle box first
+    // we find two lines forming an acute angle in the triangle
+    // Expressing point as a sum of the two lines
+    // Checking if factors are both between [0 ; 1] -> true else false
+  }
+  return false
+}
+
+func (triangle Triangle) Intersects(line Line) bool { // if a line goes through a triangle
+  // tests side by side
+  return true
+}
+
+/* Box method */
+
+func IsPointInBox(min,max,test Point) bool { // Returns whether a point is in a box, with min being the top left corner and max the bottom right
+  return (min.X <= test.X && min.Y <= test.Y && test.X <= max.X && test.Y <= max.Y)
+}
 
 /* Point methods */
 
-func (point *Point) Distance(point2 Point) float64 { // gets the distance between two points
+func (point Point) Distance(point2 Point) float64 { // gets the distance between two points
   return math.Sqrt(math.Pow(float64(point.X - point2.X),2) + math.Pow(float64(point.Y - point2.Y),2)) // sqrt((x1-x2)^2 + (y1-y2)^2)
 }
 
-func (point *Point) Substract(point2 Point) Point { // Substract point2 coordinates from point
+func (point Point) Substract(point2 Point) Point { // Substract point2 coordinates from point
   return Point{
     point.X - point2.X,
     point.Y - point2.Y,
@@ -106,7 +182,7 @@ func (point *Point) Substract(point2 Point) Point { // Substract point2 coordina
 
 /* Transform methods */
 
-func (transform *Transform) GetPoint(point Point) Point { // transforms a point
+func (transform Transform) GetPoint(point Point) Point { // transforms a point
   point.X = int(float64(point.X)*transform.Size.Width) // Scaling
   point.Y = int(float64(point.Y)*transform.Size.Height)
   return Point{
@@ -115,16 +191,26 @@ func (transform *Transform) GetPoint(point Point) Point { // transforms a point
   }
 }
 
-func (transform *Transform) GetLine(line Line) Line { // transforms a line
+func (transform Transform) GetLine(line Line) Line { // transforms a line
   line.Start = transform.GetPoint(line.Start)
   line.End = transform.GetPoint(line.End)
   return line
 }
 
-// GetTriangle
+func (transform Transform) GetTriangle(triangle Triangle) Triangle { // transforms a triangle
+  return Triangle{[3]Point{
+    transform.GetPoint(triangle.Points[0]),
+    transform.GetPoint(triangle.Points[1]),
+    transform.GetPoint(triangle.Points[2]),}}
+}
 
-// Zoom
-// Rotation
+func (transform *Transform) Rotate(angle float64) { // Adds rotation to the transformation
+  // ...
+}
+
+func (transform *Transform) Zoom(scale float64) { // Zooms/Unzooms the transformation
+  // ...
+}
 
 /* Angle calculations */
 
