@@ -38,31 +38,35 @@ func NewSurface(w,h int,Filename string) Surface { // creates a new surface
 /* Surface methods */
 
 func (surface *Surface) DrawPixel(x,y int,col color.Color) { // draws a pixel in the image
-
+  surface.Image.Set(x,y,col)
 }
 
 func (surface *Surface) DrawPoint(point geometry.Point) { // draws a point in the image
-
+  // Draws a point in the surface
 }
 
 func (surface *Surface) DrawLine(line geometry.Line,thickness int,col color.Color) { // draws a line in the plan
-
+  // Draws each point between start and end
+  // if thickness is 1 directly draw the line
+  // if not, draws lines between line + thickness/2 and line - thickness/2 => as 1 thickness line
 }
 
 func (surface *Surface) DrawFillTriangle(triangle geometry.Triangle,col color.Color) { // fills a triangle section of the plan
-
+  // Go through each point of the first line and second line
+    // Draws the line between those two points
+  // If a line is shorter than the other, draws every line between the end point of the short till the end of the other one
 }
 
 func (surface *Surface) Draw(shape go2d.Shape,drawable Drawable) { // draws objects in plan
   // If object has 1 point -> point, use either fillColor or Border color
   // If object has 2 points -> line
   // else
-    // if Fill is true, decompose object in triangle then fill each triangle
-  // draw each line with border
+    // if Fill is true, decompose object in triangles then fill each triangle
+  // draw each lines with border
 }
 
 func (surface *Surface) Clear() { // clears the image
-
+  // just writes over with an empty image
 }
 
 func (surface *Surface) setSize(size geometry.Scale) { // changes surface's size
