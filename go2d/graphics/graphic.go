@@ -17,6 +17,13 @@ import(
   "image/color"
   "image/png"
   "os"
+  "math"
+)
+
+const(
+  ABSOLUTE_FILL = 0 // Fills every possible triangle
+  ORIGIN_FILL = 1 // Takes the origin, and draws triangles around it with all the points
+  NEXT_FILL = 2 // Fills triangles one by one, by taking points 3 by 3
 )
 
 type Surface struct { // A surface is a structure containing a plan a filename and an actual image, to draw into
@@ -29,10 +36,21 @@ type Drawable struct { // A structure to get data info on what to draw in a shap
   FillColor color.Color // Fill color
   Thickness int // Border thickness
   ColorBorders,Fill bool // Should we color borders and fill the shape
+  FillType int // How the shape should be filled, if it should
 }
 
 func NewSurface(w,h int,Filename string) Surface { // creates a new surface
   return Surface{Filename,image.NewRGBA(image.Rect(0,0,w,h)),}
+}
+
+func NewDrawableShape(border,fill color.Color) (drawable Drawable) { // Creates a drawable for a shape
+  drawable.BorderColor = border
+  drawable.FillColor = fill
+  drawable.Thickness = 1
+  drawable.FillType = ABSOLUTE_FILL
+  drawable.ColorBorders = true
+  drawable.Fill = true
+  return
 }
 
 /* Surface methods */
@@ -41,20 +59,66 @@ func (surface *Surface) DrawPixel(x,y int,col color.Color) { // draws a pixel in
   surface.Image.Set(x,y,col)
 }
 
-func (surface *Surface) DrawPoint(point geometry.Point) { // draws a point in the image
-  // Draws a point in the surface
+func (surface *Surface) DrawPoint(point geometry.Point,col color.Color) { // draws a point in the image
+  surface.DrawPixel(point.X,point.Y,col)
 }
 
 func (surface *Surface) DrawLine(line geometry.Line,thickness int,col color.Color) { // draws a line in the plan
-  // Draws each point between start and end
-  // if thickness is 1 directly draw the line
-  // if not, draws lines between line + thickness/2 and line - thickness/2 => as 1 thickness line
+  if thickness == 1 {
+    if line.IsVertical() { // if the line is vertical
+      if line.Start.Y > line.End.Y { // Always aligned from the shortest y to the longest
+        line.Start,line.End = line.End,line.Start
+      }
+      for i := 0;i <= int(line.Length());i++ {
+        surface.DrawPixel(line.Start.X, line.Start.Y+i, col)
+      }
+    } else { // Line is horizontal or different
+      if line.Start.X > line.End.X { // Always aligned from the shortest x to the longest
+        line.Start,line.End = line.End,line.Start
+      }
+      if line.IsHorizontal() { // If the line is horizontal
+        for i := 0;i <= int(line.Length());i++ {
+          surface.DrawPixel(line.Start.X+i, line.Start.Y, col)
+        }
+      } else { // Else
+        a := line.Coefficient()
+        pas := 1/math.Abs(a)
+        if math.Abs(a) < pas {
+          pas = math.Abs(a)
+        }
+        x,y := 0.0,0.0
+        for ;x <= math.Abs(float64(line.Start.X) - float64(line.End.X));x = x + pas {
+          y = x * a
+          surface.DrawPixel(line.Start.X + int(x),line.Start.Y + int(y),col)
+        }
+      }
+    }
+  } else { // Line with bigger thickness
+
+  }
+}
+
+func (surface *Surface) DrawTriangle(triangle geometry.Triangle,col color.Color) { // Draws a triangle
+  surface.DrawLine(triangle.GetLine(0),1,col)
+  surface.DrawLine(triangle.GetLine(1),1,col)
+  surface.DrawLine(triangle.GetLine(2),1,col)
 }
 
 func (surface *Surface) DrawFillTriangle(triangle geometry.Triangle,col color.Color) { // fills a triangle section of the plan
-  // Go through each point of the first line and second line
-    // Draws the line between those two points
-  // If a line is shorter than the other, draws every line between the end point of the short till the end of the other one
+  min,max := triangle.GetBox()
+  if !triangle.IsTriangleFlat() {
+    cpy := min.Y
+    for ; min.X < max.X ; min.X++ {
+      min.Y = cpy
+      for ; min.Y < max.Y ; min.Y++ {
+        if triangle.IsPointInTriangle(min) {
+          surface.DrawPoint(min,col)
+        }
+      }
+    }
+  } else { // flat triangle
+    surface.DrawLine(geometry.NewLine(min,max),1,col)
+  }
 }
 
 func (surface *Surface) Draw(shape go2d.Shape,drawable Drawable) { // draws objects in plan

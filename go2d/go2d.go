@@ -15,6 +15,7 @@ package go2d
 
 import(
   "go2d/geometry"
+  "math"
 )
 
 type Shape struct { // a shape is a collection of points that can be transformed
@@ -44,9 +45,10 @@ func (shape *Shape) GetTrianglesCount() int { // returns the amount of triangles
 }
 
 func (shape *Shape) GetRelativePoint(index int) geometry.Point { // returns a transformed point of a shape relative to shape origin (its position)
-  if index >= shape.GetPointsCount() || index < 0 {
+  if index < 0 {
     panic("Trying to access non-existant point in shape")
   }
+  index = int(math.Mod(float64(index),float64(shape.GetPointsCount())))
   return shape.Transformations.GetPoint(shape.Points[index])
 }
 
@@ -65,9 +67,17 @@ func (shape *Shape) GetLine(index int) (Line geometry.Line) { // returns the x-t
   return
 }
 
-func (shape *Shape) GetTriangle(index int) (triangle geometry.Triangle) { // returns a triangle from 3 shape point, used in many things like filling shape or collisions
-  triangle.Points[0] = shape.GetPoint(index)
-  triangle.Points[1] = shape.GetPoint(index+1)
-  triangle.Points[2] = shape.GetPoint(index+2)
-  return triangle
+func (shape *Shape) GetNextTriangle(index int) geometry.Triangle { // Returns a triangle composed of index,index+1,index+2 points of a shape
+  line := shape.GetLine(index)
+  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(index+2))
+}
+
+func (shape *Shape) GetAbsoluteTriangle(index,triangleIndex int) geometry.Triangle { // returns a triangle from 3 shape point, used in many things like filling shape or collisions
+  line := shape.GetLine(index)
+  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(index + 2 + triangleIndex))
+}
+
+func (shape *Shape) GetTriangleFromOrigin(index int) geometry.Triangle { // Returns a triangle formed by the origin and 2 points of the shape
+  line := shape.GetLine(index)
+  return geometry.NewTriangle(shape.Position,line.Start,line.End)
 }

@@ -59,7 +59,19 @@ func NewTransform() Transform { // creates a Transform structure
 
 /* Line methods */
 
-func (line Line) Distance() float64 { // gets distance between two line points
+func (line Line) IsVertical() bool { // if the line is vertical
+  return line.Start.X == line.End.X
+}
+
+func (line Line) IsHorizontal() bool { // if the line is horizontal
+  return line.Start.Y == line.End.Y
+}
+
+func (line Line) Coefficient() float64 { // line coefficient
+  return float64(line.Start.Y - line.End.Y)/float64(line.Start.X - line.End.X)
+}
+
+func (line Line) Length() float64 { // gets distance between two line points
   return line.Start.Distance(line.End)
 }
 
@@ -80,12 +92,12 @@ func (line Line) IsPoint() bool { // if the line is a point
 
 func (line Line) DotProductLine(line2 Line) float64 { // calculates the dot product of two lines
   vect,vect2 := line.ToVector(),line2.ToVector()
-  return float64(vect.X)*float64(vect2.X) + float64(vect.Y)*float64(vect2.Y)
+  return (float64(vect.X)*float64(vect2.X) + float64(vect.Y)*float64(vect2.Y))/math.Pow(line.Length(),2)
 }
 
 func (line Line) AngleLine(line2 Line) float64 { // calculates the angle between two lines
   dotProduct := line.DotProductLine(line2)
-  dist,dist2 := line.Distance(),line2.Distance()
+  dist,dist2 := line.Length(),line2.Length()
   if dist == 0.0 || dist2 == 0.0 {
     panic("Line is actually a point") // Should AnglePoint be used directly ?
   } else {
@@ -98,16 +110,22 @@ func (line Line) Intersects(line2 Line) (point Point,test bool) { // if two line
   return
 }
 
-func (line) IsAlignedLine(line Line) bool { // if the line is aligned with another line
+func (line Line) IsAlignedLine(line2 Line) bool { // if the line is aligned with another line
   // ...
   return true
 }
 
 /* Line methods with points */
 
-func (line) IsAlignedPoint(point Point) bool { // if the line is aligned with a point
-  // ...
-  return true
+func (line Line) IsAlignedPoint(point Point) bool { // if the line is aligned with a point
+  if line.IsVertical() { // vertical line
+    return point.X == line.Start.X
+  } else if line.IsHorizontal() { // horizontal line
+    return point.Y == line.Start.Y
+  } else { // a line
+    test := float64(point.X)*line.Coefficient()
+    return point.Y == int(test)
+  }
 }
 
 func (line Line) DotProductPoint(point Point) float64 { // calculates the dot product of a line and a point
@@ -124,15 +142,27 @@ func (triangle Triangle) GetLine(index int) Line { // returns one of the 3 lines
   if index > 2 {
     panic("Trying to get non existant line in triangle")
   }
-  return NewLine(triangle.Points[index],triangle.Points[index+1])
+  return NewLine(triangle.Points[index],triangle.Points[int(math.Mod(float64(index+1),3.0))])
 }
 
-func IsTriangleFlat() bool { // if the triangle is float64
-  return true
+func (triangle Triangle) IsTriangleFlat() bool { // if the triangle is flat
+  return triangle.GetLine(0).IsAlignedPoint(triangle.Points[2])
 }
 
-func (triangle Triangle) GetAcuteAngleLines() (line,line2 Line) { // gets two lines forming an acute angle
-  return
+func (triangle Triangle) GetAcuteAngleLines() (line,line2 Line,angleStart Point) { // gets two lines forming an acute angle and the angle point
+  line = NewLine(triangle.Points[0],triangle.Points[1])
+  line2 = NewLine(triangle.Points[1],triangle.Points[2])
+  angleStart = triangle.Points[1]
+  angle := line.AngleLine(line2)
+  if IsAngleAcute(angle) {
+    return
+  } else if IsAngleFlat(angle) {
+    panic("Triangle is flat")
+  } else {
+    line2 = NewLine(triangle.Points[0],triangle.Points[2])
+    angleStart = triangle.Points[0]
+    return
+  }
 }
 
 func (triangle Triangle) GetBox() (min,max Point) { // returns the box in which the triangle is in
@@ -149,9 +179,13 @@ func (triangle Triangle) GetBox() (min,max Point) { // returns the box in which 
 func (triangle Triangle) IsPointInTriangle(point Point) bool { // checks if a point is in the triangle
   min,max := triangle.GetBox()
   if IsPointInBox(min,max,point) { // if the point is in the triangle box first
-    // we find two lines forming an acute angle in the triangle
-    // Expressing point as a sum of the two lines
-    // Checking if factors are both between [0 ; 1] -> true else false
+    // Calculating barycentric coordinates
+    var alpha,beta,gamma float64
+    p1,p2,p3 := triangle.Points[0],triangle.Points[1],triangle.Points[2]
+    alpha = float64(((p2.Y - p3.Y)*(point.X - p3.X) + (p3.X - p2.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
+    beta = float64(((p3.Y - p1.Y)*(point.X - p3.X) + (p1.X - p3.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
+    gamma = 1 - alpha - beta
+    return 0 <= alpha && alpha <= 1 && 0 <= beta && beta <= 1 && 0 <= gamma && gamma <= 1
   }
   return false
 }
@@ -161,7 +195,7 @@ func (triangle Triangle) Intersects(line Line) bool { // if a line goes through 
   return true
 }
 
-/* Box method */
+/* Box methods */
 
 func IsPointInBox(min,max,test Point) bool { // Returns whether a point is in a box, with min being the top left corner and max the bottom right
   return (min.X <= test.X && min.Y <= test.Y && test.X <= max.X && test.Y <= max.Y)
@@ -205,11 +239,21 @@ func (transform Transform) GetTriangle(triangle Triangle) Triangle { // transfor
 }
 
 func (transform *Transform) Rotate(angle float64) { // Adds rotation to the transformation
-  // ...
+  transform.Angle = GetAbsoluteAngleValue(angle+transform.Angle);
 }
 
 func (transform *Transform) Zoom(scale float64) { // Zooms/Unzooms the transformation
-  // ...
+  transform.Size.Width = scale*transform.Size.Width
+  transform.Size.Height = scale*transform.Size.Height
+}
+
+func (transform *Transform) SetRotation(angle float64) { // Sets rotation
+  transform.Angle = angle;
+}
+
+func (transform *Transform) SetZoom(scale float64) { // Sets zoom
+  transform.Size.Width = scale
+  transform.Size.Height = scale
 }
 
 /* Angle calculations */
