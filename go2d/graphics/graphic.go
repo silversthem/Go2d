@@ -20,10 +20,11 @@ import(
   "math"
 )
 
-const(
+const( // Differents ways of filling a shape
   ABSOLUTE_FILL = 0 // Fills every possible triangle
   ORIGIN_FILL = 1 // Takes the origin, and draws triangles around it with all the points
   NEXT_FILL = 2 // Fills triangles one by one, by taking points 3 by 3
+  FIRST_FILL = 3 // Takes the first points, creates triangles with every other point 2 by 2 and draws that
 )
 
 type Surface struct { // A surface is a structure containing a plan a filename and an actual image, to draw into
@@ -47,7 +48,7 @@ func NewDrawableShape(border,fill color.Color) (drawable Drawable) { // Creates 
   drawable.BorderColor = border
   drawable.FillColor = fill
   drawable.Thickness = 1
-  drawable.FillType = ABSOLUTE_FILL
+  drawable.FillType = FIRST_FILL
   drawable.ColorBorders = true
   drawable.Fill = true
   return
@@ -94,7 +95,7 @@ func (surface *Surface) DrawLine(line geometry.Line,thickness int,col color.Colo
       }
     }
   } else { // Line with bigger thickness
-
+    
   }
 }
 
@@ -122,15 +123,45 @@ func (surface *Surface) DrawFillTriangle(triangle geometry.Triangle,col color.Co
 }
 
 func (surface *Surface) Draw(shape go2d.Shape,drawable Drawable) { // draws objects in plan
-  // If object has 1 point -> point, use either fillColor or Border color
-  // If object has 2 points -> line
-  // else
-    // if Fill is true, decompose object in triangles then fill each triangle
-  // draw each lines with border
+  if len(shape.Points) == 2 { // Shape is a line
+    if drawable.ColorBorders { // Coloring borders
+      surface.DrawLine(shape.GetLine(0),drawable.Thickness,drawable.BorderColor)
+    }
+  } else if len(shape.Points) > 2 { // Shape is a convex shape
+    if drawable.Fill { // Filling object
+      triangles := shape.GetTrianglesCount()
+      switch drawable.FillType { // Drawing differently depending on shape
+      case ABSOLUTE_FILL: // Drawing every possible triangle in the shape
+        for i := 0;i < triangles;i++ {
+          for j := 0;j < triangles;j++ {
+            surface.DrawFillTriangle(shape.GetAbsoluteTriangle(i,j),drawable.FillColor)
+          }
+        }
+      case ORIGIN_FILL: // Drawing every triangle from points two by two and origin
+        for i := 0;i < triangles;i++ {
+          surface.DrawFillTriangle(shape.GetTriangleFromOrigin(i),drawable.FillColor)
+        }
+      case NEXT_FILL: // Drawing triangles from points 3 by 3
+        for i := 0;i < triangles;i++ {
+          surface.DrawFillTriangle(shape.GetNextTriangle(i),drawable.FillColor)
+        }
+      case FIRST_FILL: // Drawing triangles from points two by two and the first point
+        for i := 0;i < triangles;i++ {
+          surface.DrawFillTriangle(shape.GetAbsoluteTriangle(i,0),drawable.FillColor)
+        }
+      }
+    }
+    if drawable.ColorBorders { // Coloring borders
+      lines := shape.GetLinesCount()
+      for i := 0;i < lines;i++ {
+        surface.DrawLine(shape.GetLine(i),drawable.Thickness,drawable.BorderColor)
+      }
+    }
+  }
 }
 
 func (surface *Surface) Clear() { // clears the image
-  // just writes over with an empty image
+  surface.Image = image.NewRGBA(surface.Image.Rect) // Creates a new image of the same size over the precedent
 }
 
 func (surface *Surface) setSize(size geometry.Scale) { // changes surface's size

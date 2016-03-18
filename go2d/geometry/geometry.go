@@ -7,7 +7,6 @@ package geometry
  Also contains everything needed for plan calculations
  ---- TODOS ----
  @TODO : Everything about triangles
- @TODO : Transform handling
  @TODO : More calculations :
     line intersections, alignment of points, translations using lines, triangles rotation and scaling, line angles
 */
@@ -44,6 +43,10 @@ func NewLine(start,end Point) Line { // creates a line
   return Line{start,end,}
 }
 
+func NewLineFromEquation(startPoint Point,a,b,distance float64) { // Creates a line from a point and an equation y = a*x+b , with end at distance from start
+  
+}
+
 func NewTriangle(point,point2,point3 Point) Triangle { // creates a triangle
   return Triangle{
       [3]Point{point,point2,point3,},}
@@ -67,8 +70,12 @@ func (line Line) IsHorizontal() bool { // if the line is horizontal
   return line.Start.Y == line.End.Y
 }
 
-func (line Line) Coefficient() float64 { // line coefficient
+func (line Line) Coefficient() float64 { // line coefficient the a in y = a*x + b
   return float64(line.Start.Y - line.End.Y)/float64(line.Start.X - line.End.X)
+}
+
+func (line Line) LinearConstant() float64 { // A line is y = a*x+b, this function returns b, Coefficient returns a
+  return float64(line.Start.Y) - float64(line.Start.X)*line.Coefficient()
 }
 
 func (line Line) Length() float64 { // gets distance between two line points
@@ -84,8 +91,7 @@ func (line Line) Opposite() Line { // Returns the opposite line (swaps Start and
 }
 
 func (line Line) IsPoint() bool { // if the line is a point
-  // ...
-  return true
+  return line.Start.Y == line.End.Y && line.Start.X == line.End.X
 }
 
 /* Line methods with other lines */
@@ -106,13 +112,35 @@ func (line Line) AngleLine(line2 Line) float64 { // calculates the angle between
 }
 
 func (line Line) Intersects(line2 Line) (point Point,test bool) { // if two line intersects
-  // ...
+  if line.IsVertical() {
+    if !line2.IsVertical() {
+      point.X = line.Start.X
+      point.Y = int(float64(line.Start.X)*line.Coefficient() + line.LinearConstant())
+    } else {
+      if line.Start.X == line2.Start.X { // Overlapping
+        test = true
+      } else {
+        test = false
+      }
+    }
+  } else if line2.IsVertical() {
+    point,test = line2.Intersects(line)
+  } else {
+    coeff,coeff2 := line.Coefficient(),line2.Coefficient()
+    lnc,lnc2 := line.LinearConstant(),line2.LinearConstant()
+    if coeff == coeff2 { // Parallel lines
+      test = false
+    } else { // solving x*a + b = x*a' + b' <=> x*(a - a') = b' - b <=> x = (b' - b)/(a - a')
+      test = true // We know that non parallel line collides at some point
+      point.X = int((lnc2 - lnc)/(coeff - coeff2))
+      point.Y = int(float64(point.X)*coeff + lnc)
+    }
+  }
   return
 }
 
 func (line Line) IsAlignedLine(line2 Line) bool { // if the line is aligned with another line
-  // ...
-  return true
+  return line.IsAlignedPoint(line2.Start) && line.IsAlignedPoint(line2.End)
 }
 
 /* Line methods with points */
@@ -123,7 +151,7 @@ func (line Line) IsAlignedPoint(point Point) bool { // if the line is aligned wi
   } else if line.IsHorizontal() { // horizontal line
     return point.Y == line.Start.Y
   } else { // a line
-    test := float64(point.X)*line.Coefficient()
+    test := float64(point.X)*line.Coefficient() + line.LinearConstant()
     return point.Y == int(test)
   }
 }
@@ -176,23 +204,34 @@ func (triangle Triangle) GetBox() (min,max Point) { // returns the box in which 
   return
 }
 
+func (triangle Triangle) GetBarycentric(point Point) (alpha,beta,gamma float64) { // Returns barycentric coordinates of a point the triangle
+  p1,p2,p3 := triangle.Points[0],triangle.Points[1],triangle.Points[2]
+  alpha = float64(((p2.Y - p3.Y)*(point.X - p3.X) + (p3.X - p2.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
+  beta = float64(((p3.Y - p1.Y)*(point.X - p3.X) + (p1.X - p3.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
+  gamma = 1 - alpha - beta
+  return
+}
+
 func (triangle Triangle) IsPointInTriangle(point Point) bool { // checks if a point is in the triangle
   min,max := triangle.GetBox()
   if IsPointInBox(min,max,point) { // if the point is in the triangle box first
-    // Calculating barycentric coordinates
-    var alpha,beta,gamma float64
-    p1,p2,p3 := triangle.Points[0],triangle.Points[1],triangle.Points[2]
-    alpha = float64(((p2.Y - p3.Y)*(point.X - p3.X) + (p3.X - p2.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
-    beta = float64(((p3.Y - p1.Y)*(point.X - p3.X) + (p1.X - p3.X)*(point.Y - p3.Y)))/float64(((p2.Y - p3.Y)*(p1.X - p3.X) + (p3.X - p2.X)*(p1.Y - p3.Y)))
-    gamma = 1 - alpha - beta
+    alpha,beta,gamma := triangle.GetBarycentric(point)
     return 0 <= alpha && alpha <= 1 && 0 <= beta && beta <= 1 && 0 <= gamma && gamma <= 1
   }
   return false
 }
 
+func (triangle Triangle) IsLineInTriangle(line Line) bool { // If a line is inside the triangle
+  return triangle.IsPointInTriangle(line.Start) && triangle.IsPointInTriangle(line.End)
+}
+
 func (triangle Triangle) Intersects(line Line) bool { // if a line goes through a triangle
-  // tests side by side
-  return true
+  // Getting the three sides of the triangle
+  s1,s2,s3 := NewLine(triangle.Points[0],triangle.Points[1]),NewLine(triangle.Points[1],triangle.Points[2]),NewLine(triangle.Points[2],triangle.Points[0])
+  _,t1 := line.Intersects(s1)
+  _,t2 := line.Intersects(s2)
+  _,t3 := line.Intersects(s3)
+  return t1 || t2 || t3
 }
 
 /* Box methods */

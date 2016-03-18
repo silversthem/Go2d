@@ -24,7 +24,7 @@ type Shape struct { // a shape is a collection of points that can be transformed
   Position geometry.Point // Position of shape
 }
 
-func NewShape(x,y int,points []geometry.Point) Shape { // creates a basic shape
+func NewShape(x,y int,points... geometry.Point) Shape { // creates a basic shape
   return Shape{points,geometry.NewTransform(),geometry.NewPoint(x,y),}
 }
 
@@ -37,11 +37,11 @@ func (shape *Shape) GetPointsCount() int { // returns a shape amount of points
 }
 
 func (shape *Shape) GetLinesCount() int { // returns the amount of lines in the shape
-  return len(shape.Points) - 1
+  return len(shape.Points)
 }
 
 func (shape *Shape) GetTrianglesCount() int { // returns the amount of triangles in the shape
-  return len(shape.Points) - 2
+  return len(shape.Points)
 }
 
 func (shape *Shape) GetRelativePoint(index int) geometry.Point { // returns a transformed point of a shape relative to shape origin (its position)
@@ -74,7 +74,7 @@ func (shape *Shape) GetNextTriangle(index int) geometry.Triangle { // Returns a 
 
 func (shape *Shape) GetAbsoluteTriangle(index,triangleIndex int) geometry.Triangle { // returns a triangle from 3 shape point, used in many things like filling shape or collisions
   line := shape.GetLine(index)
-  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(index + 2 + triangleIndex))
+  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(triangleIndex))
 }
 
 func (shape *Shape) GetTriangleFromOrigin(index int) geometry.Triangle { // Returns a triangle formed by the origin and 2 points of the shape
