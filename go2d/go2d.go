@@ -3,6 +3,7 @@ package go2d
   Basic functions of the go2d packages, contains :
   Shapes, which are bunches of points
   ---- TODOS ----
+  @TODO : Text support /!\
   @TODO : Use import C and SDL to be able to handle a window and events [new file]
   @TODO : Handle collisions [new file] using triangles and masks for textures [new file]
   @TODO : Default shapes and colors [new file] with NewX() and ColorX() functions
@@ -11,6 +12,7 @@ package go2d
   @TODO : Multithreading to update images while doing calculations, to make the library able to show cool, real time, rendering of another process [new file]
   @TODO : Shaders [new file]
   @TODO : Complex support in graphes [new file]
+  @TODO : Nodes and stuff, to build cool diagrams [new file]
 */
 
 import(
@@ -27,8 +29,6 @@ type Shape struct { // a shape is a collection of points that can be transformed
 func NewShape(x,y int,points... geometry.Point) Shape { // creates a basic shape
   return Shape{points,geometry.NewTransform(),geometry.NewPoint(x,y),}
 }
-
-/* Shape methods */
 
 /* Counting */
 
