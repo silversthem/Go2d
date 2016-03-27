@@ -16,6 +16,10 @@ func NewPoint(x,y int) Point { // creates a point
   return Point{x,y,}
 }
 
+func NewImagePoint(x,y int) image.Point { // Creates an image point
+  return image.Point{x,y}
+}
+
 /* Point methods */
 
 func (point Point) Distance(point2 Point) float64 { // gets the distance between two points
