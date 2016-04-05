@@ -16,7 +16,7 @@ currently implemented (even though I want them to be, so eventually they'll make
   - [ ] Basic geometry operations, like telling when lines cross each other and stuff
   - [ ] Same, but with shapes
   - [ ] Drawing using functions (functional style)
-  - [ ] Super cool shaders
+  - [x] Super cool shaders
   - [ ] Creating diagrams and stuff
   
 #### What can it be used for ?
