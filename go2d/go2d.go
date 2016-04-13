@@ -1,7 +1,8 @@
 package go2d
+
 /*
-  Basic functions of the go2d packages, contains :
-  Shapes, which are bunches of points
+  go2d is a package to easily draw things into images.
+  This file contains the basic interfaces for any drawing.
   ---- TODOS ----
   @TODO : Text support /!\
   @TODO : Use import C and SDL to be able to handle a window and events [new file]
@@ -17,67 +18,21 @@ package go2d
 
 import(
   "go2d/geometry"
-  "math"
+  "image/color"
 )
 
-type Shape struct { // a shape is a collection of points that can be transformed
-  Points []geometry.Point // points, relatively to Position
-  Transformations geometry.Transform // transformation on points
-  Position geometry.Point // Position of shape
+/* Primary Interfaces */
+
+type Surface interface { // A surface is something on which you can draw
+  DrawPoint(geometry.Point,color.Color) // Drawing a colored point
+  DrawLine(geometry.Line,Drawable)      // Draws a line
+  Draw(Rendered)                        // Draws something in the surface
 }
 
-func NewShape(x,y int,points... geometry.Point) Shape { // creates a basic shape
-  return Shape{points,geometry.NewTransform(),geometry.NewPoint(x,y),}
+type Drawable interface { // Basic drawing instructions
+  GetPointColor(geometry.Point) color.Color // Returns the color of a point
 }
 
-/* Counting */
-
-func (shape *Shape) GetPointsCount() int { // returns a shape amount of points
-  return len(shape.Points)
-}
-
-func (shape *Shape) GetLinesCount() int { // returns the amount of lines in the shape
-  return len(shape.Points)
-}
-
-func (shape *Shape) GetTrianglesCount() int { // returns the amount of triangles in the shape
-  return len(shape.Points)
-}
-
-func (shape *Shape) GetRelativePoint(index int) geometry.Point { // returns a transformed point of a shape relative to shape origin (its position)
-  if index < 0 {
-    panic("Trying to access non-existant point in shape")
-  }
-  index = int(math.Mod(float64(index),float64(shape.GetPointsCount())))
-  return shape.Transformations.GetPoint(shape.Points[index])
-}
-
-/* Getting */
-
-func (shape *Shape) GetPoint(index int) (point geometry.Point) { // returns a point of shape in the plan
-  point = shape.GetRelativePoint(index)
-  point.X = point.X + shape.Position.X
-  point.Y = point.Y + shape.Position.Y
-  return
-}
-
-func (shape *Shape) GetLine(index int) (Line geometry.Line) { // returns the x-th line of the shape
-  Line.Start = shape.GetPoint(index)
-  Line.End = shape.GetPoint(index+1)
-  return
-}
-
-func (shape *Shape) GetNextTriangle(index int) geometry.Triangle { // Returns a triangle composed of index,index+1,index+2 points of a shape
-  line := shape.GetLine(index)
-  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(index+2))
-}
-
-func (shape *Shape) GetAbsoluteTriangle(index,triangleIndex int) geometry.Triangle { // returns a triangle from 3 shape point, used in many things like filling shape or collisions
-  line := shape.GetLine(index)
-  return geometry.NewTriangle(line.Start,line.End,shape.GetPoint(triangleIndex))
-}
-
-func (shape *Shape) GetTriangleFromOrigin(index int) geometry.Triangle { // Returns a triangle formed by the origin and 2 points of the shape
-  line := shape.GetLine(index)
-  return geometry.NewTriangle(shape.Position,line.Start,line.End)
+type Rendered interface { // Everything that can be drawn
+  Draw(Surface) // Returns true while there's points to draw
 }

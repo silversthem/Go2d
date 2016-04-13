@@ -1,7 +1,7 @@
 package geometry
 
 /*
-  A Transform structure is what you use to specify rotations and scaling transformations for a shape
+  A Transform structure is what you use to specify rotations and scaling transformations for a shape, point, line or triangle
 */
 
 import(

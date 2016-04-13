@@ -43,6 +43,40 @@ func (line Line) Angle() float64 { // Gets line oriented angle
   }
 }
 
+func (line Line) GetPas() (pasx,pasy float64) { // Gets the amount of pixel the line moves at each iteration
+  if !line.IsVertical() {
+    if line.Coefficient() < 0 { // Lines goes down, reversing it
+      pasx,pasy = NewLine(line.End,line.Start).GetPas()
+      pasx = (-1)*pasx
+      pasy = (-1)*pasy
+    } else if line.Coefficient() > 1 { // Lines goes up faster than on the side
+      if line.Start.X > line.End.X {
+        pasx = -1
+      } else {
+        pasx = 1
+      }
+      pasy  = 1/line.Coefficient()
+    } else if line.Coefficient() < 1 { // Lines goes on the side faster than up
+      pasy = line.Coefficient()
+      if line.Start.X > line.End.X {
+        pasx = -1
+      } else {
+        pasx = 1
+      }
+    } else {
+      pasx,pasy = 1,1
+    }
+  } else { // Vertical line
+    pasx = 0
+    if line.Start.Y > line.End.Y {
+      pasy = -1
+    } else {
+      pasy = 1
+    }
+  }
+  return
+}
+
 func (line Line) Coefficient() float64 { // line coefficient the a in y = a*x + b
   return float64(line.Start.Y - line.End.Y)/float64(line.Start.X - line.End.X)
 }
